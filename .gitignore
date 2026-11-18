@@ -1,0 +1,7 @@
+# Persönliche Daten: enthalten API-Schlüssel bzw. private Notizen. Nie veröffentlichen.
+einstellungen.json
+einstellungen.json.tmp
+gedaechtnis.json
+gedaechtnis.json.tmp
+__pycache__/
+*.pyc

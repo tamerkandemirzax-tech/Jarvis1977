@@ -113,6 +113,10 @@ def save_settings(s):
     tmp = SETTINGS_FILE + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(s, f, ensure_ascii=False, indent=2)
+    try:
+        os.chmod(tmp, 0o600)          # enthält API-Schlüssel im Klartext (unter Windows wirkungslos, aber harmlos)
+    except OSError:
+        pass
     os.replace(tmp, SETTINGS_FILE)
 
 
@@ -137,7 +141,7 @@ def update_settings(data):
             d = DEFAULTS[k]
             try:
                 if isinstance(d, bool):
-                    v = bool(v)
+                    v = (str(v).strip().lower() in ("1", "true", "ja", "on")) if isinstance(v, str) else bool(v)
                 elif isinstance(d, float):
                     v = max(0.1, min(3.0, float(v)))
                 elif isinstance(d, list):
@@ -814,6 +818,10 @@ class KIError(Exception):
     pass
 
 
+class ClientGone(Exception):
+    """Der Browser hat die Verbindung getrennt (Stopp-Knopf, Seite geschlossen)."""
+
+
 def clean_history(msgs, ohne_privat=False):
     out = []
     for m in msgs or []:
@@ -1167,7 +1175,10 @@ class Handler(BaseHTTPRequestHandler):
         ct = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         if ct != "application/json":
             return {}
-        n = int(self.headers.get("Content-Length") or 0)
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return {}
         if n <= 0 or n > 2_000_000:
             return {}
         try:
@@ -1268,9 +1279,12 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     self.wfile.write((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8"))
                     self.wfile.flush()
-                except (BrokenPipeError, ConnectionResetError):
-                    pass
-            run_chat(data, emit)
+                except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                    raise ClientGone()
+            try:
+                run_chat(data, emit)
+            except ClientGone:
+                pass
             return
         return self.send_json(404, {"error": "Unbekannt: " + path})
 

@@ -7,7 +7,7 @@
 (function () {
   "use strict";
   const J = window.Jarvis = {
-    version: "1.1", state: "idle", settings: null, theme: null, started: false, history: [], models: null,
+    version: "1.2", state: "idle", settings: null, theme: null, started: false, history: [], models: null,
     S: { level: 0, mic: 0, speak: 0, think: 0, listen: 0, pulse: 0, t: 0, dt: 0.016 }, _ls: {}
   };
   J.on = (ev, fn) => { (J._ls[ev] = J._ls[ev] || []).push(fn); };
